@@ -90,7 +90,20 @@ public abstract class User {
             e.printStackTrace();
         }
     }
-
+    //根据出题难度来出题，生成匿名对象，仅使用一次出题方法
+    public void generateQuestionsByType(String type, int number) {
+        switch (type) {
+            case "小学":
+                new Primary(account, password, type).generateQuestions(number);
+                break;
+            case "初中":
+                new JuniorHigh(account, password, type).generateQuestions(number);
+                break;
+            case "高中":
+                new High(account, password, type).generateQuestions(number);
+                break;
+        }
+    }
     //返回添加失败的问题的个数
     protected int addQuestionsToDatabase(String[] questions, Timestamp time) throws ClassNotFoundException, SQLException {
         int count = 0;
@@ -103,23 +116,26 @@ public abstract class User {
                 File file = new File("questionsData/" + account);
                 //如果没有用户的文件就创建文件夹
                 if (!file.exists()) {
-                    file.mkdir();
+                    boolean flag = file.mkdir();
+                    if (flag){
+                        System.out.println("为用户"+account+"创建了文件夹");
+                    }
                 }
 //                System.out.println(file.getPath());
                 //创建文件写入对象
                 try (FileWriter fileWriter = new FileWriter(file.getPath() + "/" + new SimpleDateFormat("yyyy年-MM月-dd日-HH时-mm分-ss秒").format(time) + ".txt", true)) {
                     //在多次写入时preparedStatement就能大大降低运行成本
-                    for (int i = 0; i < questions.length; i++) {
-                        preparedStatement.setObject(1, questions[i]);
+                    for (String question : questions) {
+                        preparedStatement.setObject(1, question);
                         preparedStatement.setObject(2, account);
                         preparedStatement.setObject(3, time);
                         try {
                             preparedStatement.executeUpdate();
-                            fileWriter.write(questions[i] + "\r\n");
+                            fileWriter.write(question + "\r\n");
                         }
                         //如果重复则会报错，并将重复的题目数量+1
                         catch (SQLException e) {
-                            System.out.println("'" + questions[i] + "'" + "与之前的题目重复，准备重新出题");
+                            System.out.println("'" + question + "'" + "与之前的题目重复，准备重新出题");
                             count++;
                         }
                     }
